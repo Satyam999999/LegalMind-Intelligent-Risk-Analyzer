@@ -77,18 +77,4 @@ streamlit run app.py
 
 The application will be available at http://localhost:8501.
 
-Project Structure
-litigation-risk-analyzer/
-├── app.py                  # Main Streamlit and Flask application
-├── data/
-│   └── master_clauses.csv  # CUAD dataset
-├── src/
-│   ├── components/         # Individual pipeline steps (ingestion, transformation, etc.)
-│   ├── pipeline/           # Scripts to orchestrate the full pipelines
-│   ├── exception.py
-│   └── logger.py
-├── artifacts/              # Saved models, embedders, and encoders
-├── logs/                   # Application logs
-├── .env                    # For storing API keys
-├── requirements.txt
-└── Dockerfile
+
