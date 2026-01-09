@@ -5,6 +5,7 @@ from pathlib import Path
 from joblib import load
 import gdown
 import zipfile
+import torch # Import torch to fix the device issue
 
 # Add project root to sys.path
 project_root = Path(__file__).resolve().parents[2]
@@ -19,10 +20,33 @@ class PredictionPipeline:
             # Check if artifacts exist, if not, download them
             self.ensure_artifacts_exist()
 
-            # Load artifacts
+            # --- FIX FOR MPS/GPU ARTIFACTS ON CPU ---
+            # This allows models trained on Mac (MPS) or GPU to load on Streamlit Cloud (CPU)
+            # We temporarily patch torch.storage.UntypedStorage to force CPU mapping
+            if not torch.cuda.is_available() and not torch.backends.mps.is_available():
+                logging.info("Detected CPU-only environment. Patching torch for artifact loading...")
+                
+                # Save the original class to restore later
+                original_storage = torch.UntypedStorage
+                
+                # Define a patched class that ignores the 'device' argument
+                class CPUMappedStorage(torch.UntypedStorage):
+                    def __new__(cls, *args, **kwargs):
+                        kwargs.pop('device', None) # Remove 'device' if present
+                        return super().__new__(cls, *args, **kwargs)
+                
+                # Apply the patch
+                torch.UntypedStorage = CPUMappedStorage
+            
+            # Load artifacts (now safe to load MPS/CUDA pickles)
             self.embedder = load(os.path.join("artifacts", "embedder.pkl"))
             self.model = load(os.path.join("artifacts", "model_lgbm.pkl"))
             self.le = load(os.path.join("artifacts", "label_encoder.pkl"))
+            
+            # Restore original class after loading to avoid side effects
+            if not torch.cuda.is_available() and not torch.backends.mps.is_available():
+                 torch.UntypedStorage = original_storage
+
             logging.info("Loaded embedder, model, and label encoder artifacts.")
         except Exception as e:
             raise CustomException(e, sys)
@@ -39,7 +63,7 @@ class PredictionPipeline:
             # --- REPLACE THIS ID WITH YOUR ACTUAL GOOGLE DRIVE FILE ID ---
             # Example: If link is https://drive.google.com/file/d/1XyZ.../view
             # The ID is the part between /d/ and /view
-            file_id = '1YKnwEV3iphpoyFeCe2Ku9WGduxOSftkD' 
+            file_id = 'YOUR_GOOGLE_DRIVE_FILE_ID_HERE' 
             # -------------------------------------------------------------
             
             url = f'https://drive.google.com/uc?id={file_id}'
