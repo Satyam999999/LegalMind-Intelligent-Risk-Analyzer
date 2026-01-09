@@ -6,6 +6,7 @@ from joblib import load
 import gdown
 import zipfile
 import torch # Import torch to fix the device issue
+from sentence_transformers import SentenceTransformer # Added import for fallback
 
 # Add project root to sys.path
 project_root = Path(__file__).resolve().parents[2]
@@ -38,8 +39,20 @@ class PredictionPipeline:
                 # Apply the patch
                 torch.UntypedStorage = CPUMappedStorage
             
-            # Load artifacts (now safe to load MPS/CUDA pickles)
-            self.embedder = load(os.path.join("artifacts", "embedder.pkl"))
+            # Load artifacts
+            logging.info("Loading artifacts...")
+            try:
+                self.embedder = load(os.path.join("artifacts", "embedder.pkl"))
+                # --- VALIDATION STEP ---
+                # Attempt a dummy encoding to ensure the pickled object works with current library versions.
+                # This catches the 'model_forward_params' AttributeError immediately.
+                self.embedder.encode(["validation"])
+            except Exception as e:
+                logging.warning(f"Pickled embedder failed to load or run: {e}")
+                logging.info("Falling back to initializing a fresh Legal-BERT model from Hugging Face.")
+                # Fallback: Load the base model dynamically. This ensures compatibility with the installed library.
+                self.embedder = SentenceTransformer("nlpaueb/legal-bert-base-uncased")
+
             self.model = load(os.path.join("artifacts", "model_lgbm.pkl"))
             self.le = load(os.path.join("artifacts", "label_encoder.pkl"))
             
