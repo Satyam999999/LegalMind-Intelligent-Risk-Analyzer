@@ -63,7 +63,7 @@ class PredictionPipeline:
             # --- REPLACE THIS ID WITH YOUR ACTUAL GOOGLE DRIVE FILE ID ---
             # Example: If link is https://drive.google.com/file/d/1XyZ.../view
             # The ID is the part between /d/ and /view
-            file_id = 'YOUR_GOOGLE_DRIVE_FILE_ID_HERE' 
+            file_id = '1YKnwEV3iphpoyFeCe2Ku9WGduxOSftkD' 
             # -------------------------------------------------------------
             
             url = f'https://drive.google.com/uc?id={file_id}'
